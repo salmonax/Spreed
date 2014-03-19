@@ -2,6 +2,55 @@ require 'green_shoes'
 require './lib/spreed_book'
 require './lib/wpm'
 
+def repeat_every(interval)
+  Thread.new do
+    loop do
+      start_time = Time.now
+      yield
+      elapsed = Time.now - start_time
+      sleep([interval - elapsed, 0].max)
+    end
+  end
+end
+
+class Spreeder
+  def initialize(book,speed,&updater)
+    @book = book
+    @speed = speed
+    @updater = updater
+  end
+
+  def start
+    if @thread
+      sleep(0.1)
+      @thread.kill
+    end
+    @thread = @updater.call
+  end
+
+  def stop
+    @thread.kill if @thread
+    @thread = nil
+  end
+
+  def word
+    @book.word
+  end
+
+  def back(words)
+    @book.jump_back(words)
+    self.start
+  end
+
+  def hours_left 
+    (@book.words_left/@speed.wpm)/60
+  end
+
+  def minutes_left
+    (@book.words_left/@speed.wpm)%60
+  end
+end
+
 def spreedify(word)
   return if word == nil
   position = word.length == 1 ? 0 : (word.length/4.0+1).ceil-1
@@ -20,50 +69,65 @@ def spreeded_output(new_word)
   output_text
 end
 
-Shoes.app height: 195, title: "Spreed" do
-    flow height: 20 do
-      background white
-      # @file_selected = para 'No file selected'
-      # @open_file = button "Open File"
-      # @start_spreeding = button "Start Spreeding!"
-      # @stop = button "Stop!"
+Shoes.app height: 250, title: "Spreed" do
+    f = File.open("data/my_books/tda.txt","r")
+    @spreed_book = SpreedBook.new(f)
+    @reading_speed = Wpm.new(1000)
+
+    @shoes_updater = Proc.new do
+      @word.replace("")
+      @position.replace("")
+      @spreeder_slot.clear { @word = title "", align: 'center' }
+      @position_slot.clear { @position = para "", align: 'right' }
+
+      @thread = repeat_every @reading_speed.interval do 
+        @word.replace(spreeded_output(@spreed_book.next_word))
+        @time_left.replace("Time Left: #{@spreeder.hours_left} hours, #{@spreeder.minutes_left} minutes.")
+        @position.replace("#{@spreed_book.current_position}/#{@spreed_book.length}")
+      end
     end
 
-    # @open_file.click do
-    #   @file_selected.replace ask_open_file()
-    # end
+    @spreeder =  Spreeder.new(@spreed_book,@reading_speed,&@shoes_updater)
 
-    # @start_spreeding.click do
-
-    # end
-
-    # @stop.click do
-    #   Thread.kill(thread)
-    # end
-    
-    stack width: 875, margin_left: 20 do #width: 375 when @word margin_left is 0
+    @display_slot = stack width: 875, margin_left: 25, margin_top: 10 do #width: 375 when @word margin_left is 0
+      # background gray
       image "data/alignment_bar_top.png"
-      flow margin_left: -200 do
+      @spreeder_slot = stack margin_left: -200 do
         @word = title "", align: 'center'
       end
       image "data/alignment_bar_bottom.png"
+      @position_slot = flow width: 545 do
+        @time_left = para "", align: 'left'
+        @position = para "", align: 'right'
+      end
     end
 
-    stack width: 560 do
-      @position = para "", align: 'right'
+    flow margin_top: 20, margin_left: 130 do
+      flow do
+        @open_file = button "Open"
+        @start_spreeding = button "Start"
+        @stop = button "Stop"
+        @back = button "Back"
+        list_box width: 90, items: ["50wpm","300wpm","600wpm",@reading_speed.text], choose: @reading_speed.text do |list|
+          @reading_speed.set_from_text(list.text)
+          @spreeder.start
+        end
+        # @file_selected = para 'No file selected'
+      end
     end
-    word_position = 0
+
+    @spreeder.start
+
+    # spreeder = Spreeder.new(@spreed_book,@reading_speed,spreeder_slot)
+    # spreeder_stack = stack
+    
+
+    @open_file.click { @file_selected.replace ask_open_file() }
+
+    @start_spreeding.click { @spreeder.start } 
+    @stop.click { @spreeder.stop }
+    @back.click { @spreeder.back(20) }
 
 
-    reading_speed = Wpm.new(600) 
-    f = File.open("data/books/gutenberg_the_idiot.txt","r")
-    @spreed_book = SpreedBook.new(f)
-
-    every reading_speed.interval do
-      @word.replace(spreeded_output(@spreed_book.next_word))
-      hours_to_read = (@spreed_book.words_left/reading_speed.wpm)/60
-      minutes_to_read = (@spreed_book.words_left/reading_speed.wpm)%60
-      @position.replace(hours_to_read.to_s+" hours, "+minutes_to_read.to_s+" minutes.    "+@spreed_book.current_position.to_s + "/" + @spreed_book.length.to_s)
-    end
 
 end

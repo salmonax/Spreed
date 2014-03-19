@@ -8,14 +8,28 @@ class SpreedBook
     @current_position
   end
 
+  def jump_back(words)
+    @current_position = [0,@current_position - words].max
+  end
+
   def next_word
     @current_position += 1
     @book[@current_position-1]
   end
 
+  def word
+    @book[@current_position]
+  end
+
   def words_left
     @book.length - @current_position
   end
+
+  def length
+    @book.length
+  end 
+
+  private
 
   def build_stripped_book(f)
     book = []
@@ -30,9 +44,5 @@ class SpreedBook
       end
     end
     book
-  end
-
-  def length
-    @book.length
   end
 end
