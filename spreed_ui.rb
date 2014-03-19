@@ -1,6 +1,7 @@
 require 'green_shoes'
 require './lib/spreed_book'
 require './lib/wpm'
+require './lib/spreeder'
 
 def repeat_every(interval)
   Thread.new do
@@ -10,44 +11,6 @@ def repeat_every(interval)
       elapsed = Time.now - start_time
       sleep([interval - elapsed, 0].max)
     end
-  end
-end
-
-class Spreeder
-  def initialize(book,speed,&updater)
-    @book = book
-    @speed = speed
-    @updater = updater
-  end
-
-  def start
-    if @thread
-      sleep(0.1)
-      @thread.kill
-    end
-    @thread = @updater.call
-  end
-
-  def stop
-    @thread.kill if @thread
-    @thread = nil
-  end
-
-  def word
-    @book.word
-  end
-
-  def back(words)
-    @book.jump_back(words)
-    self.start
-  end
-
-  def hours_left 
-    (@book.words_left/@speed.wpm)/60
-  end
-
-  def minutes_left
-    (@book.words_left/@speed.wpm)%60
   end
 end
 
@@ -102,16 +65,16 @@ Shoes.app height: 250, title: "Spreed" do
       end
     end
 
-    flow margin_top: 20, margin_left: 130 do
+    flow margin_top: 20, margin_left: 140 do
       flow do
         @open_file = button "Open"
-        @start_spreeding = button "Start"
-        @stop = button "Stop"
-        @back = button "Back"
         list_box width: 90, items: ["50wpm","300wpm","600wpm",@reading_speed.text], choose: @reading_speed.text do |list|
           @reading_speed.set_from_text(list.text)
           @spreeder.start
         end
+        @start_spreeding = button "Start"
+        @stop = button "Stop"
+        @back = button "Back 30"
         # @file_selected = para 'No file selected'
       end
     end
@@ -122,11 +85,14 @@ Shoes.app height: 250, title: "Spreed" do
     # spreeder_stack = stack
     
 
-    @open_file.click { @file_selected.replace ask_open_file() }
+    @open_file.click do 
+      f = File.open(ask_open_file(),"r")
+      @spreed_book = SpreedBook.new(f)
+    end
 
     @start_spreeding.click { @spreeder.start } 
     @stop.click { @spreeder.stop }
-    @back.click { @spreeder.back(20) }
+    @back.click { @spreeder.back(30) }
 
 
 
