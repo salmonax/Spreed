@@ -1,4 +1,5 @@
 class SpreedBook
+  attr_reader :book
   def initialize(f)
     @book = build_stripped_book(f)
     @current_position = 0
@@ -8,8 +9,8 @@ class SpreedBook
     @current_position
   end
 
-  def jump_back(words)
-    @current_position = [0,@current_position - words].max
+  def jump(words)
+    @current_position = [0,@current_position + words].max
   end
 
   def next_word

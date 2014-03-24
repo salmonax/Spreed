@@ -13,6 +13,10 @@ class Wpm
     @wpm.to_s + "wpm"
   end
 
+  def set(wpm)
+    @wpm = wpm
+  end
+
   def set_from_text(text)
     @wpm = text.gsub(/\a/,'').to_i
   end
