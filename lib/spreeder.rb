@@ -16,7 +16,6 @@ class Spreeder
 
 
   def start
-    # @speed.set
     if !@running
       @outputter.start
       @running = true
@@ -66,6 +65,13 @@ class Spreeder
     self.faster(-add) if @speed.wpm-add > 0
   end
 
+  def save
+    @outputter.save
+  end
+
+  def load
+    @outputter.load
+  end
 
   def hours_left 
     (@book.words_left/@speed.wpm)/60

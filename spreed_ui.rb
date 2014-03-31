@@ -2,35 +2,7 @@ require 'green_shoes'
 require './lib/spreed_book'
 require './lib/wpm'
 require './lib/spreeder'
-
-# Shoes-specific outputter strategy for the Spreeder'
-class ShoesOutputter
-
-  def initialize(slot)
-    @slot = slot
-    @slot.app do
-      #move the relevant instance variable here, eventually
-    end
-  end
-
-  def start
-    @slot.app do
-      @spreed_loop = every @reading_speed.interval do 
-        @word.replace(spreeded_output(@spreed_book.next_word))
-        @time_left.replace("#{@spreeder.hours_left} hours, #{@spreeder.minutes_left} minutes.\
-          #{@spreed_book.current_position}/#{@spreed_book.length}\
-          #{@spreeder.wpm}wpm")
-      end
-    end
-  end
-
-  def stop 
-    @slot.app do
-       @spreed_loop.stop
-    end
-  end
-
-end
+require './lib/shoes_outputter'
 
 def spreedify(word)
   return if word == nil
@@ -50,9 +22,11 @@ def spreeded_output(new_word)
   output_text
 end
 
-Shoes.app height: 240, title: "Spreed" do
+Shoes.app height: 245, title: "Spreed" do
 
-    f = File.open("data/my_books/db.txt","r")
+    @position_filename = "data/positons.txt"
+    @book_filename = "data/my_books/tda.txt" 
+    f = File.open(@book_filename,"r")
     @spreed_book = SpreedBook.new(f)
     @reading_speed = Wpm.new(500)
 
@@ -68,7 +42,9 @@ Shoes.app height: 240, title: "Spreed" do
       @position_slot = flow width: 645 do
         @time_left = para "", align: 'left'
         @position = para "", align: 'left'
-        @info = para fg "0-9 to set speed. Q for Play/Pause. I to hide info.", blue
+        stack margin_left: 50 do
+          @info = para fg "0-9 to set speed. Q for Play/Pause. I to hide info.", blue
+        end
       end
     end
 
@@ -93,6 +69,8 @@ Shoes.app height: 240, title: "Spreed" do
           @spreeder.slower(50)
       when "d"
           @spreeder.faster(50)
+      when "/"
+          @spreeder.load
       when "i"
           @info.toggle
       end

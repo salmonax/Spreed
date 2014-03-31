@@ -1,5 +1,5 @@
 class SpreedBook
-  attr_reader :book
+  attr_reader :book, :current_position
   def initialize(f)
     @book = build_stripped_book(f)
     @current_position = 0
